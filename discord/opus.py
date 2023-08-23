@@ -59,6 +59,7 @@ class SignalCtl(TypedDict):
 
 __all__ = (
     'Encoder',
+    'Decoder',
     'OpusError',
     'OpusNotLoaded',
 )

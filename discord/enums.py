@@ -68,6 +68,7 @@ __all__ = (
     'AutoModRuleActionType',
     'ForumLayoutType',
     'ForumOrderType',
+    'RTCPMessageType',
 )
 
 if TYPE_CHECKING:
@@ -763,6 +764,14 @@ class ForumLayoutType(Enum):
 class ForumOrderType(Enum):
     latest_activity = 0
     creation_date = 1
+
+
+class RTCPMessageType(Enum):
+    sender_report = 200
+    receiver_report = 201
+    source_description = 202
+    goodbye = 203
+    application_defined = 204
 
 
 def create_unknown_value(cls: Type[E], val: Any) -> E:

@@ -165,6 +165,125 @@ PCMVolumeTransformer
 .. autoclass:: PCMVolumeTransformer
     :members:
 
+AudioFile
+~~~~~~~~~
+
+.. attributetable:: AudioFile
+
+.. autoclass:: AudioFile
+	:members:
+
+WaveAudioFile
+~~~~~~~~~~~~~~~~~
+
+.. attributetable:: WaveAudioFile
+
+.. autoclass:: WaveAudioFile
+	:members:
+
+MP3AudioFile
+~~~~~~~~~~~~~~~~
+
+.. attributetable:: MP3AudioFile
+
+.. autoclass:: MP3AudioFile
+	:members:
+
+AudioSink
+~~~~~~~~~
+
+.. attributetable:: AudioSink
+
+.. autoclass:: AudioSink
+	:members:
+
+AudioFileSink
+~~~~~~~~~~~~~
+
+.. attributetable:: AudioFileSink
+
+.. autoclass:: AudioFileSink
+	:members:
+
+AudioFrame
+~~~~~~~~~~
+
+.. attributetable:: AudioFrame
+
+.. autoclass:: AudioFrame
+	:members:
+
+RTCPPacket
+~~~~~~~~~~
+
+.. attributetable:: RTCPPacket
+
+.. autoclass:: RTCPPacket
+	:members:
+
+RTCPSenderReportPacket
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPSenderReportPacket
+
+.. autoclass:: RTCPSenderReportPacket
+	:members:
+
+RTCPReceiverReportPacket
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPReceiverReportPacket
+
+.. autoclass:: RTCPReceiverReportPacket
+	:members:
+
+RTCPSourceDescriptionPacket
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPSourceDescriptionPacket
+
+.. autoclass:: RTCPSourceDescriptionPacket
+
+RTCPGoodbyePacket
+~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPGoodbyePacket
+
+.. autoclass:: RTCPGoodbyePacket
+	:members:
+
+RTCPApplicationDefinedPacket
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPApplicationDefinedPacket
+
+.. autoclass:: RTCPApplicationDefinedPacket
+	:members:
+
+RTCPReceiverReportBlock
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPReceiverReportBlock
+
+.. autoclass:: RTCPReceiverReportBlock
+	:members:
+
+RTCPSourceDescriptionChunk
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPSourceDescriptionChunk
+
+.. autoclass:: RTCPSourceDescriptionChunk
+	:members:
+
+RTCPSourceDescriptionItem
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. attributetable:: RTCPSourceDescriptionItem
+
+.. autoclass:: RTCPSourceDescriptionItem
+	:members:
+
 Opus Library
 ~~~~~~~~~~~~~
 
@@ -3348,6 +3467,31 @@ of :class:`enum.Enum`.
     .. attribute:: creation_date
 
         Sort forum posts by creation time (from most recent to oldest).
+
+
+.. class:: RTCPMessageType
+
+	Represents an RTCP type received from discord through a voice channel socket.
+
+	.. attribute:: sender_report
+
+		RTCP Sender Report Packet
+
+	.. attribute:: receiver_report
+
+		RTCP Receiver Report Packet
+
+	.. attribute:: source_description
+
+		RTCP Source Description Packet
+
+	.. attribute:: goodbye
+
+		RTCP Goodbye Packet
+
+	.. attribute:: application_defined
+
+		RTCP Application-defined Packet
 
 
 .. _discord-api-audit-logs:

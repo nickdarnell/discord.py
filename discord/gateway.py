@@ -34,7 +34,7 @@ import threading
 import traceback
 import zlib
 
-from typing import Any, Callable, Coroutine, Deque, Dict, List, TYPE_CHECKING, NamedTuple, Optional, TypeVar
+from typing import Any, Callable, Coroutine, Deque, Dict, List, TYPE_CHECKING, NamedTuple, Optional, TypeVar, Union
 
 import aiohttp
 import yarl
@@ -43,6 +43,7 @@ from . import utils
 from .activity import BaseActivity
 from .enums import SpeakingState
 from .errors import ConnectionClosed
+from .object import Object
 
 _log = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     from .client import Client
+    from .member import Member
     from .state import ConnectionState
     from .voice_client import VoiceClient
 
@@ -825,6 +827,7 @@ class DiscordVoiceWebSocket:
         self.loop: asyncio.AbstractEventLoop = loop
         self._keep_alive: Optional[VoiceKeepAliveHandler] = None
         self._close_code: Optional[int] = None
+        self._speaking_map: Dict[int, Dict[str, Union[Member, Object]]] = {}
         self.secret_key: Optional[str] = None
         if hook:
             self._hook = hook
@@ -940,6 +943,20 @@ class DiscordVoiceWebSocket:
             interval = data['heartbeat_interval'] / 1000.0
             self._keep_alive = VoiceKeepAliveHandler(ws=self, interval=min(interval, 5.0))
             self._keep_alive.start()
+        elif op == self.SPEAKING:
+            # Imported here to avoid circular import
+            from .member import Member
+
+            ssrc = data["ssrc"]
+            if ssrc in self._speaking_map:
+                self._speaking_map[ssrc]["speaking"] = data["speaking"]
+            else:
+                user_id = int(data["user_id"])
+                user = self._connection.guild.get_member(user_id)
+                self._speaking_map[ssrc] = {
+                    "user": user if user is not None else Object(id=user_id, type=Member),
+                    "speaking": data["speaking"],
+                }
 
         await self._hook(self, msg)
 
@@ -1016,3 +1033,11 @@ class DiscordVoiceWebSocket:
 
         self._close_code = code
         await self.ws.close(code=code)
+
+    def get_member_from_ssrc(self, ssrc: int) -> Optional[Union['Member', Object]]:
+        if ssrc in self._speaking_map:
+            user = self._speaking_map[ssrc]["user"]
+            if isinstance(user, Object) and (member := self._connection.guild.get_member(user.id)) is not None:
+                self._speaking_map[ssrc]["user"] = member
+                return member
+            return user

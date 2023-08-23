@@ -40,33 +40,34 @@ Some documentation to refer to:
 from __future__ import annotations
 
 import asyncio
-import socket
 import logging
+import select
+import socket
 import struct
 import threading
-from typing import Any, Callable, List, Optional, TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union
 
 from . import opus, utils
 from .backoff import ExponentialBackoff
-from .gateway import *
 from .errors import ClientException, ConnectionClosed
+from .gateway import *
 from .player import AudioPlayer, AudioSource
+from .sink import AudioReceiver, AudioSink
 from .utils import MISSING
 
 if TYPE_CHECKING:
+    from . import abc
+    from .channel import StageChannel, VoiceChannel
     from .client import Client
     from .guild import Guild
+    from .opus import Decoder, Encoder
     from .state import ConnectionState
-    from .user import ClientUser
-    from .opus import Encoder
-    from .channel import StageChannel, VoiceChannel
-    from . import abc
-
     from .types.voice import (
         GuildVoiceState as GuildVoiceStatePayload,
-        VoiceServerUpdate as VoiceServerUpdatePayload,
         SupportedModes,
+        VoiceServerUpdate as VoiceServerUpdatePayload,
     )
+    from .user import ClientUser
 
     VocalGuildChannel = Union[VoiceChannel, StageChannel]
 
@@ -259,7 +260,9 @@ class VoiceClient(VoiceProtocol):
         self.timeout: float = 0
         self._runner: asyncio.Task = MISSING
         self._player: Optional[AudioPlayer] = None
+        self._receiver: Optional[AudioReceiver] = None
         self.encoder: Encoder = MISSING
+        self.decoders: Dict[int, Decoder] = {}
         self._lite_nonce: int = 0
         self.ws: DiscordVoiceWebSocket = MISSING
 
@@ -331,6 +334,8 @@ class VoiceClient(VoiceProtocol):
 
         self.socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setblocking(False)
+        self._receiver = AudioReceiver(self)
+        self._receiver.start()
 
         if not self._handshaking:
             # If we're not handshaking then we need to terminate our previous connection in the websocket
@@ -504,6 +509,7 @@ class VoiceClient(VoiceProtocol):
             return
 
         self.stop()
+        self._receiver.stop()
         self._connected.clear()
 
         try:
@@ -640,6 +646,148 @@ class VoiceClient(VoiceProtocol):
         if self._player:
             self._player.resume()
 
+    def listen(
+        self,
+        sink: AudioSink,
+        *,
+        decode: bool = True,
+        supress_warning: bool = False,
+        after: Optional[Callable[..., Awaitable[Any]]] = None,
+        **kwargs,
+    ) -> None:
+        """Receives audio into an :class:`AudioSink`
+
+        IMPORTANT: If you call this function, the running section of your code should be
+        contained within an `if __name__ == "__main__"` statement to avoid conflicts with
+        multiprocessing that result in the asyncio event loop dying.
+
+        The finalizer, ``after`` is called after listening has stopped or
+        an error has occurred.
+
+        If an error happens while the audio receiver is running, the exception is
+        caught and the audio receiver is then stopped.  If no after callback is
+        passed, any caught exception will be logged using the library logger.
+
+        If this function is called multiple times, it is recommended to use
+        wait_for_listen_ready before making the next call to avoid errors.
+
+        Parameters
+        -----------
+        sink: :class:`AudioSink`
+            The audio sink we're passing audio to.
+        decode: :class:`bool`
+            Whether to decode data received from discord.
+        supress_warning: :class:`bool`
+            Whether to supress the warning raised when listen is run unsafely.
+        after: Callable[..., Awaitable[Any]]
+            The finalizer that is called after the receiver stops. This function
+            must be a coroutine function. This function must have at least two
+            parameters, ``sink`` and ``error``, that denote, respectfully, the
+            sink passed to this function and an optional exception that was
+            raised during playing. The function can have additional arguments
+            that match the keyword arguments passed to this function.
+
+        Raises
+        -------
+        ClientException
+            Already listening, not connected, or must initialize audio processing pool before listening.
+        TypeError
+            sink is not an :class:`AudioSink` or after is not a callable.
+        OpusNotLoaded
+            Opus, required to decode audio, is not loaded.
+        """
+        if not self.is_connected():
+            raise ClientException('Not connected to voice.')
+
+        if self.is_listen_receiving():
+            raise ClientException('Listening is already active.')
+
+        if not isinstance(sink, AudioSink):
+            raise TypeError(f"sink must be an AudioSink not {sink.__class__.__name__}")
+
+        if not self.is_audio_process_pool_initialized():
+            raise ClientException("Must initialize audio processing pool before listening.")
+
+        if not supress_warning and self.is_listen_cleaning():
+            _log.warning(
+                "Cleanup is still in progress for the last call to listen and so errors may occur. "
+                "It is recommended to use wait_for_listen_ready before calling listen unless you "
+                "know what you're doing."
+            )
+
+        if decode:
+            # Check that opus is loaded and throw error else
+            opus.Decoder.get_opus_version()
+
+        self._receiver.start_listening(sink, decode=decode, after=after, after_kwargs=kwargs)
+
+    def init_audio_processing_pool(self, max_processes: int, *, wait_timeout: Optional[float] = 3) -> None:
+        """Initialize audio processing pool. This function should only be called once from any one
+        voice client object.
+
+        Parameters
+        ----------
+        max_processes: :class:`int`
+            The audio processing pool will distribute audio processing across
+            this number of processes.
+        wait_timeout: Optional[:class:`int`]
+            A process will automatically finish when it has not received any audio
+            after this amount of time. Default is 3. None means it will never finish
+            via timeout.
+
+        Raises
+        ------
+        RuntimeError
+            Audio processing pool is already initialized
+        ValueError
+            max_processes or wait_timeout must be greater than 0
+        """
+        self._state.init_audio_processing_pool(max_processes, wait_timeout=wait_timeout)
+
+    def is_audio_process_pool_initialized(self) -> bool:
+        """Indicates if the audio process pool is active"""
+        return self._state.is_audio_process_pool_initialized()
+
+    def is_listening(self) -> bool:
+        """Indicates if the client is currently listening and processing audio."""
+        return self._receiver is not None and self._receiver.is_listening()
+
+    def is_listening_paused(self) -> bool:
+        """Indicate if the client is currently listening, but paused (not processing audio)."""
+        return self._receiver is not None and self._receiver.is_paused()
+
+    def is_listen_receiving(self) -> bool:
+        """Indicates whether listening is active, regardless of the pause state."""
+        return self._receiver is not None and not self._receiver.is_on_standby()
+
+    def is_listen_cleaning(self) -> bool:
+        """Check if the receiver is cleaning up."""
+        return self._receiver is not None and self._receiver.is_cleaning()
+
+    def stop_listening(self) -> None:
+        """Stops listening"""
+        if self._receiver:
+            self._receiver.stop_listening()
+
+    def pause_listening(self) -> None:
+        """Pauses listening"""
+        if self._receiver:
+            self._receiver.pause()
+
+    def resume_listening(self) -> None:
+        """Resumes listening"""
+        if self._receiver:
+            self._receiver.resume()
+
+    async def wait_for_listen_ready(self) -> None:
+        """Wait till it's safe to make a call to listen.
+        Basically waits for is_listen_receiving and is_listen_cleaning to be false.
+        """
+        if self._receiver is None:
+            return
+        await self._receiver.wait_for_standby()
+        await self._receiver.wait_for_clean()
+
     @property
     def source(self) -> Optional[AudioSource]:
         """Optional[:class:`AudioSource`]: The audio source being played, if playing.
@@ -690,3 +838,32 @@ class VoiceClient(VoiceProtocol):
             _log.warning('A packet has been dropped (seq: %s, timestamp: %s)', self.sequence, self.timestamp)
 
         self.checked_add('timestamp', opus.Encoder.SAMPLES_PER_FRAME, 4294967295)
+
+    def recv_audio(self, *, dump: bool = False) -> Optional[bytes]:
+        """Attempts to receive raw audio and returns it, otherwise nothing.
+
+        You must be connected to receive audio.
+
+        Raises any error thrown by the connection socket.
+
+        Parameters
+        ----------
+        dump: :class:`bool`
+            Will not return audio packet if true
+
+        Returns
+        -------
+        Optional[bytes]
+            If audio was received then it's returned.
+        """
+        ready, _, err = select.select([self.socket], [], [self.socket], 0.01)
+        if err:
+            _log.error(f"Socket error: {err[0]}")
+            return
+        if not ready or not self._connected.is_set():
+            return
+
+        data = self.socket.recv(4096)
+        if dump:
+            return
+        return data
