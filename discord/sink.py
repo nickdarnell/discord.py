@@ -678,6 +678,11 @@ class AudioHandlingSink(AudioSink):
         # after a specific amount of time
 
         last_sequence = self._last_sequence[frame.ssrc]
+
+        # if our last sequence is the max value, then we need to reset it because we've wrapped around.
+        if last_sequence == 65535:
+            last_sequence = -1
+        
         if frame.sequence <= last_sequence:
             return
 
