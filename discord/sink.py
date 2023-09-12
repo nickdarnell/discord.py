@@ -614,6 +614,7 @@ class AudioHandlingSink(AudioSink):
 
     __slots__ = (
         "_last_sequence",
+        "_last_timestamp",
         "_buffer",
         "_buffer_wait",
         "_frame_queue",
@@ -631,6 +632,7 @@ class AudioHandlingSink(AudioSink):
 
     def __init__(self):
         self._last_sequence: Dict[int, int] = defaultdict(lambda: -1)
+        self._last_timestamp: Dict[int, int] = defaultdict(lambda: -1)
         # _buffer is not shared across threads
         self._buffers: Dict[int, List[AudioFrame]] = defaultdict(list)
         self._frame_queue = queue.Queue()
@@ -680,7 +682,7 @@ class AudioHandlingSink(AudioSink):
         last_sequence = self._last_sequence[frame.ssrc]
 
         # if our last sequence is the max value, then we need to reset it because we've wrapped around.
-        if last_sequence == 65535:
+        if last_sequence >= 65000 and frame.sequence <= 1000:
             last_sequence = -1
         
         if frame.sequence <= last_sequence:
@@ -688,6 +690,7 @@ class AudioHandlingSink(AudioSink):
 
         if last_sequence == -1 or frame.sequence == last_sequence + 1:
             self._last_sequence[frame.ssrc] = frame.sequence
+            self._last_timestamp[frame.ssrc] = frame.timestamp
             self.on_valid_audio(frame)
             self._empty_buffer(frame.ssrc)
         else:
