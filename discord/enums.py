@@ -42,7 +42,6 @@ __all__ = (
     'ActivityType',
     'NotificationLevel',
     'TeamMembershipState',
-    'TeamMemberRole',
     'WebhookType',
     'ExpireBehaviour',
     'ExpireBehavior',
@@ -70,10 +69,6 @@ __all__ = (
     'ForumLayoutType',
     'ForumOrderType',
     'RTCPMessageType',
-    'SelectDefaultValueType',
-    'SKUType',
-    'EntitlementType',
-    'EntitlementOwnerType',
 )
 
 if TYPE_CHECKING:
@@ -527,12 +522,6 @@ class TeamMembershipState(Enum):
     accepted = 2
 
 
-class TeamMemberRole(Enum):
-    admin = 'admin'
-    developer = 'developer'
-    read_only = 'read_only'
-
-
 class WebhookType(Enum):
     incoming = 1
     channel_follower = 2
@@ -595,7 +584,6 @@ class InteractionResponseType(Enum):
     message_update = 7  # for components
     autocomplete_result = 8
     modal = 9  # for modals
-    premium_required = 10
 
 
 class VideoQualityMode(Enum):
@@ -755,19 +743,16 @@ class AutoModRuleTriggerType(Enum):
     spam = 3
     keyword_preset = 4
     mention_spam = 5
-    member_profile = 6
 
 
 class AutoModRuleEventType(Enum):
     message_send = 1
-    member_update = 2
 
 
 class AutoModRuleActionType(Enum):
     block_message = 1
     send_alert_message = 2
     timeout = 3
-    block_member_interactions = 4
 
 
 class ForumLayoutType(Enum):
@@ -787,26 +772,6 @@ class RTCPMessageType(Enum):
     source_description = 202
     goodbye = 203
     application_defined = 204
-
-
-class SelectDefaultValueType(Enum):
-    user = 'user'
-    role = 'role'
-    channel = 'channel'
-
-
-class SKUType(Enum):
-    subscription = 5
-    subscription_group = 6
-
-
-class EntitlementType(Enum):
-    application_subscription = 8
-
-
-class EntitlementOwnerType(Enum):
-    guild = 1
-    user = 2
 
 
 def create_unknown_value(cls: Type[E], val: Any) -> E:

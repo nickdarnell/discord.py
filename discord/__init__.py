@@ -41,7 +41,6 @@ from .integrations import *
 from .invite import *
 from .template import *
 from .welcome_screen import *
-from .sku import *
 from .widget import *
 from .object import *
 from .reaction import *

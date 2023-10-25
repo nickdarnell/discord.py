@@ -316,7 +316,6 @@ class AuditEntryInfo(TypedDict):
     guild_id: Snowflake
     auto_moderation_rule_name: str
     auto_moderation_rule_trigger_type: str
-    integration_type: str
 
 
 class AuditLogEntry(TypedDict):

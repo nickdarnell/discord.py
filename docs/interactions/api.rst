@@ -166,14 +166,6 @@ SelectOption
 .. autoclass:: SelectOption
     :members:
 
-SelectDefaultValue
-~~~~~~~~~~~~~~~~~~~
-
-.. attributetable:: SelectDefaultValue
-
-.. autoclass:: SelectDefaultValue
-    :members:
-
 Choice
 ~~~~~~~
 
@@ -450,15 +442,6 @@ Item
 
 .. autoclass:: discord.ui.Item
     :members:
-
-DynamicItem
-~~~~~~~~~~~~
-
-.. attributetable:: discord.ui.DynamicItem
-
-.. autoclass:: discord.ui.DynamicItem
-    :members:
-    :inherited-members:
 
 Button
 ~~~~~~~

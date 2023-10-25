@@ -1842,7 +1842,7 @@ class Connectable(Protocol):
     async def connect(
         self,
         *,
-        timeout: float = 30.0,
+        timeout: float = 60.0,
         reconnect: bool = True,
         cls: Callable[[Client, Connectable], T] = VoiceClient,
         self_deaf: bool = False,
@@ -1858,7 +1858,7 @@ class Connectable(Protocol):
         Parameters
         -----------
         timeout: :class:`float`
-            The timeout in seconds to wait the connection to complete.
+            The timeout in seconds to wait for the voice endpoint.
         reconnect: :class:`bool`
             Whether the bot should automatically attempt
             a reconnect if a part of the handshake fails

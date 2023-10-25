@@ -27,7 +27,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 
 from discord.errors import ClientException, DiscordException
-from discord.utils import _human_join
 
 if TYPE_CHECKING:
     from discord.abc import GuildChannel
@@ -759,7 +758,12 @@ class MissingAnyRole(CheckFailure):
         self.missing_roles: SnowflakeList = missing_roles
 
         missing = [f"'{role}'" for role in missing_roles]
-        fmt = _human_join(missing)
+
+        if len(missing) > 2:
+            fmt = '{}, or {}'.format(', '.join(missing[:-1]), missing[-1])
+        else:
+            fmt = ' or '.join(missing)
+
         message = f'You are missing at least one of the required roles: {fmt}'
         super().__init__(message)
 
@@ -784,7 +788,12 @@ class BotMissingAnyRole(CheckFailure):
         self.missing_roles: SnowflakeList = missing_roles
 
         missing = [f"'{role}'" for role in missing_roles]
-        fmt = _human_join(missing)
+
+        if len(missing) > 2:
+            fmt = '{}, or {}'.format(', '.join(missing[:-1]), missing[-1])
+        else:
+            fmt = ' or '.join(missing)
+
         message = f'Bot is missing at least one of the required roles: {fmt}'
         super().__init__(message)
 
@@ -823,7 +832,11 @@ class MissingPermissions(CheckFailure):
         self.missing_permissions: List[str] = missing_permissions
 
         missing = [perm.replace('_', ' ').replace('guild', 'server').title() for perm in missing_permissions]
-        fmt = _human_join(missing, final='and')
+
+        if len(missing) > 2:
+            fmt = '{}, and {}'.format(', '.join(missing[:-1]), missing[-1])
+        else:
+            fmt = ' and '.join(missing)
         message = f'You are missing {fmt} permission(s) to run this command.'
         super().__init__(message, *args)
 
@@ -844,7 +857,11 @@ class BotMissingPermissions(CheckFailure):
         self.missing_permissions: List[str] = missing_permissions
 
         missing = [perm.replace('_', ' ').replace('guild', 'server').title() for perm in missing_permissions]
-        fmt = _human_join(missing, final='and')
+
+        if len(missing) > 2:
+            fmt = '{}, and {}'.format(', '.join(missing[:-1]), missing[-1])
+        else:
+            fmt = ' and '.join(missing)
         message = f'Bot requires {fmt} permission(s) to run this command.'
         super().__init__(message, *args)
 
@@ -879,7 +896,11 @@ class BadUnionArgument(UserInputError):
                 return x.__class__.__name__
 
         to_string = [_get_name(x) for x in converters]
-        fmt = _human_join(to_string)
+        if len(to_string) > 2:
+            fmt = '{}, or {}'.format(', '.join(to_string[:-1]), to_string[-1])
+        else:
+            fmt = ' or '.join(to_string)
+
         super().__init__(f'Could not convert "{param.displayed_name or param.name}" into {fmt}.')
 
 
@@ -912,7 +933,11 @@ class BadLiteralArgument(UserInputError):
         self.argument: str = argument
 
         to_string = [repr(l) for l in literals]
-        fmt = _human_join(to_string)
+        if len(to_string) > 2:
+            fmt = '{}, or {}'.format(', '.join(to_string[:-1]), to_string[-1])
+        else:
+            fmt = ' or '.join(to_string)
+
         super().__init__(f'Could not convert "{param.displayed_name or param.name}" into the literal {fmt}.')
 
 

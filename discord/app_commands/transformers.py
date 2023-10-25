@@ -525,7 +525,7 @@ else:
         .. versionadded:: 2.0
         """
 
-        def __class_getitem__(cls, items) -> Transformer:
+        def __class_getitem__(cls, items) -> _TransformMetadata:
             if not isinstance(items, tuple):
                 raise TypeError(f'expected tuple for arguments, received {items.__class__.__name__} instead')
 
@@ -570,7 +570,7 @@ else:
                 await interaction.response.send_message(f'Your value is {value}', ephemeral=True)
         """
 
-        def __class_getitem__(cls, obj) -> RangeTransformer:
+        def __class_getitem__(cls, obj) -> _TransformMetadata:
             if not isinstance(obj, tuple):
                 raise TypeError(f'expected tuple for arguments, received {obj.__class__.__name__} instead')
 

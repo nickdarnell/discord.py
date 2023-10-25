@@ -32,7 +32,6 @@ from typing import (
     Dict,
     Optional,
     TYPE_CHECKING,
-    Type,
     Union,
     Callable,
     Any,
@@ -53,7 +52,6 @@ import os
 
 from .guild import Guild
 from .activity import BaseActivity
-from .sku import Entitlement
 from .user import User, ClientUser
 from .emoji import Emoji
 from .mentions import AllowedMentions
@@ -89,8 +87,6 @@ if TYPE_CHECKING:
     from .http import HTTPClient
     from .voice_client import VoiceProtocol
     from .gateway import DiscordWebSocket
-    from .ui.item import Item
-    from .ui.dynamic import DynamicItem
     from .app_commands import CommandTree, Translator
 
     from .types.automod import AutoModerationRule, AutoModerationActionExecution
@@ -403,12 +399,6 @@ class ConnectionState(Generic[ClientT]):
 
     def prevent_view_updates_for(self, message_id: int) -> Optional[View]:
         return self._view_store.remove_message_tracking(message_id)
-
-    def store_dynamic_items(self, *items: Type[DynamicItem[Item[Any]]]) -> None:
-        self._view_store.add_dynamic_items(*items)
-
-    def remove_dynamic_items(self, *items: Type[DynamicItem[Item[Any]]]) -> None:
-        self._view_store.remove_dynamic_items(*items)
 
     @property
     def persistent_views(self) -> Sequence[View]:
@@ -1589,18 +1579,6 @@ class ConnectionState(Generic[ClientT]):
                 self.dispatch('typing', channel, raw.user, raw.timestamp)
 
         self.dispatch('raw_typing', raw)
-
-    def parse_entitlement_create(self, data: gw.EntitlementCreateEvent) -> None:
-        entitlement = Entitlement(data=data, state=self)
-        self.dispatch('entitlement_create', entitlement)
-
-    def parse_entitlement_update(self, data: gw.EntitlementUpdateEvent) -> None:
-        entitlement = Entitlement(data=data, state=self)
-        self.dispatch('entitlement_update', entitlement)
-
-    def parse_entitlement_delete(self, data: gw.EntitlementDeleteEvent) -> None:
-        entitlement = Entitlement(data=data, state=self)
-        self.dispatch('entitlement_delete', entitlement)
 
     def _get_reaction_user(self, channel: MessageableChannel, user_id: int) -> Optional[Union[User, Member]]:
         if isinstance(channel, (TextChannel, Thread, VoiceChannel)):
