@@ -1166,7 +1166,7 @@ class AudioReceiver(threading.Thread):
                 _log.exception('Calling the after function failed.', exc_info=exc)
 
     def _cleanup_listen(self) -> None:
-        self.sink.cleanup()
+        threading.Thread(target=self.sink.cleanup).start()
         self._call_after()
         self.sink = None
         self._clean.set()
